@@ -1,0 +1,30 @@
+# K8s Healing Agent — 配置示例
+# 复制此文件为 config.yaml 并填入实际值
+
+# Claude API
+claude_api_key: "sk-ant-api03-..."
+
+# 钉钉通知
+dingtalk_webhook: "https://oapi.dingtalk.com/robot/send?access_token=..."
+
+# 审计数据库
+audit_db_path: "data/healing_audit.db"
+
+# 日志级别
+log_level: "INFO"
+
+# 决策阈值
+confidence:
+  auto_exec: 0.8    # >= 0.8 自动执行修复
+  approval: 0.5     # >= 0.5 需要人工审批，< 0.5 仅通知
+
+# 允许处理的 namespace
+allowed_namespaces:
+  - default
+  - staging
+  - production
+
+# 修复循环保护
+loop_guard:
+  max_healings_per_hour: 2
+  same_type_cooldown_hours: 24

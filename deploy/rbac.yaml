@@ -1,0 +1,46 @@
+# K8s Healing Agent — RBAC 最小权限
+# Layer 1 of the 5-layer safety model
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-healing-agent
+  namespace: healing-agent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: healing-agent-role
+rules:
+  # ── Read-only ────────────────────────────────────
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list", "watch"]
+
+  # ── Write (restricted) ───────────────────────────
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]  # NOT daemonsets
+    verbs: ["patch", "update"]                   # NOT delete
+
+  # DELIBERATELY EXCLUDED:
+  # - pods: delete, create       → 不允许直接操作 Pod
+  # - namespaces: delete         → 不允许删除命名空间
+  # - secrets: get, list         → 不允许读取 Secret 内容
+---
+# RoleBinding (NOT ClusterRoleBinding) — 限定 namespace 范围
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: healing-agent-binding
+  namespace: default  # 按环境扩展: staging, production
+subjects:
+  - kind: ServiceAccount
+    name: k8s-healing-agent
+    namespace: healing-agent
+roleRef:
+  kind: ClusterRole
+  name: healing-agent-role
+  apiGroup: rbac.authorization.k8s.io

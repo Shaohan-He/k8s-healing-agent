@@ -1,0 +1,30 @@
+# K8s Healing Agent — ConfigMap + Prompt Config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healing-agent-config
+  namespace: healing-agent
+data:
+  config.yaml: |
+    # K8s Healing Agent — 主配置
+    audit_db_path: "/data/healing_audit.db"
+    log_level: "INFO"
+
+    # 决策阈值
+    confidence_auto_exec: 0.8
+    confidence_approval: 0.5
+
+    # 时间窗口
+    alert_dedup_window_seconds: 300   # 5min 告警去重
+    healing_loop_max_per_hour: 2      # 每小时最多修复次数
+    verification_timeout_seconds: 120 # 验证等待超时
+---
+# Secrets should NOT be in ConfigMap — use a separate Secret resource:
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: healing-agent-secrets
+# type: Opaque
+# stringData:
+#   claude-api-key: "sk-ant-..."
+#   dingtalk-webhook: "https://oapi.dingtalk.com/robot/send?..."

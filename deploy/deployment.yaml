@@ -1,0 +1,79 @@
+# K8s Healing Agent — Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healing-agent
+  namespace: healing-agent
+  labels:
+    app: healing-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: healing-agent
+  template:
+    metadata:
+      labels:
+        app: healing-agent
+    spec:
+      serviceAccountName: k8s-healing-agent
+      containers:
+        - name: agent
+          image: ghcr.io/290298661-pixel/k8s-healing-agent:v0.1.0
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: CLAUDE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: healing-agent-secrets
+                  key: claude-api-key
+            - name: DINGTALK_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: healing-agent-secrets
+                  key: dingtalk-webhook
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          volumeMounts:
+            - name: audit-data
+              mountPath: /data
+            - name: config
+              mountPath: /app/config
+      volumes:
+        - name: audit-data
+          persistentVolumeClaim:
+            claimName: healing-agent-audit-pvc
+        - name: config
+          configMap:
+            name: healing-agent-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: healing-agent
+  namespace: healing-agent
+spec:
+  selector:
+    app: healing-agent
+  ports:
+    - port: 8080
+      targetPort: 8080
