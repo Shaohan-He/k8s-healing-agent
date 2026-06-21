@@ -17,9 +17,21 @@ spec:
         app: healing-agent
     spec:
       serviceAccountName: k8s-healing-agent
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: agent
           image: ghcr.io/290298661-pixel/k8s-healing-agent:v0.1.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 8080
               name: http
@@ -58,6 +70,9 @@ spec:
               mountPath: /data
             - name: config
               mountPath: /app/config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: audit-data
           persistentVolumeClaim:
@@ -65,6 +80,8 @@ spec:
         - name: config
           configMap:
             name: healing-agent-config
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

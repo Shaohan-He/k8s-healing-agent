@@ -13,6 +13,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _error_message(exc: Exception) -> str:
+    """Return a stable message for Kubernetes ApiException and plain exceptions."""
+    return str(getattr(exc, "reason", None) or exc)
+
+
 class K8sClient:
     """Kubernetes API 客户端封装 (kubernetes 导入是 lazy 的)"""
 
@@ -67,7 +72,7 @@ class K8sClient:
         except Exception as e:
             logger.warning(
                 "获取日志失败 %s/%s (previous=%s): %s",
-                namespace, name, previous, e.reason,
+                namespace, name, previous, _error_message(e),
             )
             return ""
 
@@ -87,7 +92,7 @@ class K8sClient:
             events = self.core_v1.list_namespaced_event(**kwargs)
             return events.items or []
         except Exception as e:
-            logger.error("获取 Events 失败 %s: %s", namespace, e.reason)
+            logger.error("获取 Events 失败 %s: %s", namespace, _error_message(e))
             return []
 
     # ── Node operations ─────────────────────────────
@@ -97,7 +102,7 @@ class K8sClient:
         try:
             return self.core_v1.read_node(name)
         except Exception as e:
-            logger.error("获取 Node %s 失败: %s", name, e.reason)
+            logger.error("获取 Node %s 失败: %s", name, _error_message(e))
             return None
 
     # ── Owner resolution ────────────────────────────
@@ -130,7 +135,7 @@ class K8sClient:
                         "namespace": namespace,
                     }
             except Exception as e:
-                logger.warning("查找 ReplicaSet owner 失败: %s", e.reason)
+                logger.warning("查找 ReplicaSet owner 失败: %s", _error_message(e))
 
         return {
             "kind": owner.kind,
@@ -148,7 +153,7 @@ class K8sClient:
             return self.apps_v1.read_namespaced_deployment(name, namespace)
         except Exception as e:
             logger.error("获取 Deployment %s/%s 失败: %s",
-                         namespace, name, e.reason)
+                         namespace, name, _error_message(e))
             return None
 
     def get_statefulset(
@@ -159,7 +164,7 @@ class K8sClient:
             return self.apps_v1.read_namespaced_stateful_set(name, namespace)
         except Exception as e:
             logger.error("获取 StatefulSet %s/%s 失败: %s",
-                         namespace, name, e.reason)
+                         namespace, name, _error_message(e))
             return None
 
     def patch_deployment(
@@ -171,7 +176,7 @@ class K8sClient:
             return True
         except Exception as e:
             logger.error("Patch Deployment %s/%s 失败: %s",
-                         namespace, name, e.reason)
+                         namespace, name, _error_message(e))
             return False
 
     def patch_statefulset(
@@ -183,7 +188,7 @@ class K8sClient:
             return True
         except Exception as e:
             logger.error("Patch StatefulSet %s/%s 失败: %s",
-                         namespace, name, e.reason)
+                         namespace, name, _error_message(e))
             return False
 
     def get_pod_resource_limits(

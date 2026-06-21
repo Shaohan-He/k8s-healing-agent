@@ -5,10 +5,11 @@ WORKDIR /app
 
 # Install build dependencies
 RUN apk add --no-cache gcc musl-dev libffi-dev
+RUN python -m venv /opt/venv
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # ── Runtime ─────────────────────────────────────────
 FROM python:3.12-alpine
@@ -16,17 +17,21 @@ FROM python:3.12-alpine
 WORKDIR /app
 
 # Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
 COPY src/ ./src/
 COPY config/ ./config/
 
-# Ensure local bin is on PATH
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/opt/venv/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 
 # Non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S -g 10001 appgroup \
+    && adduser -S -D -H -u 10001 -G appgroup appuser \
+    && mkdir -p /data /tmp \
+    && chown -R appuser:appgroup /data /tmp
 USER appuser
 
 EXPOSE 8080

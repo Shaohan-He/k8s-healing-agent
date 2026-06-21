@@ -22,6 +22,11 @@ from src.utils.k8s_client import K8sClient
 logger = logging.getLogger(__name__)
 
 
+def _error_message(exc: Exception) -> str:
+    """Return a stable message for Kubernetes ApiException and plain exceptions."""
+    return str(getattr(exc, "reason", None) or exc)
+
+
 @dataclass
 class OwnerRef:
     kind: str       # Deployment | StatefulSet
@@ -88,11 +93,12 @@ class HealingExecutor:
                 return result
 
         except Exception as e:
-            logger.error("K8s API 异常: %s", e.reason)
+            msg = _error_message(e)
+            logger.error("K8s API 异常: %s", msg)
             self._rollback(owner, snapshot)
             return HealingResult(
                 success=False,
-                error=f"K8s API 异常: {e.reason}",
+                error=f"K8s API 异常: {msg}",
                 rollback_applied=True,
             )
 
@@ -123,7 +129,7 @@ class HealingExecutor:
                         namespace=namespace,
                     )
             except Exception as e:
-                logger.warning("查找 ReplicaSet Owner 失败: %s", e.reason)
+                logger.warning("查找 ReplicaSet Owner 失败: %s", _error_message(e))
                 return None
 
         # 只支持 Deployment 和 StatefulSet
