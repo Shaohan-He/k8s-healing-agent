@@ -9,7 +9,7 @@
 
 ## 概述
 
-K8s Healing Agent 是一个实验性的 Kubernetes 告警处理服务。它接收 AlertManager Webhook，收集相关 Pod、Deployment、Event、日志和节点状态，然后根据规则和模型输出修复建议。符合策略的低风险动作可以自动执行，其他动作进入人工审批或仅通知。
+K8s Healing Agent 是一个实验性的 AI Kubernetes 告警处理服务。它接收 AlertManager Webhook，收集相关 Pod、Deployment、Event、日志和节点状态，然后根据规则和模型输出修复建议。符合策略的低风险动作可以自动执行，其他动作进入人工审批或仅通知。
 
 当前定位：
 
